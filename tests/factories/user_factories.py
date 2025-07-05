@@ -2,6 +2,7 @@ import factory
 from factory import Faker
 
 from src.db.models.user import Organization, User
+
 from .base import BaseFactory
 
 
@@ -25,6 +26,6 @@ class UserFactory(BaseFactory):
     phone_number = Faker("phone_number")
     password = factory.PostGenerationMethodCall("set_password", "defaultpassword123")
     role = Faker("random_element", elements=["admin", "user", "manager", "viewer"])
-    
+
     # Optional relationship - can be None or linked to an organization
-    organization = factory.SubFactory(OrganizationFactory) 
+    organization = factory.SubFactory(OrganizationFactory)

@@ -1,6 +1,5 @@
 import pytest
 
-from src.db.models.user import Organization, User
 from tests.factories import OrganizationFactory, UserFactory
 
 

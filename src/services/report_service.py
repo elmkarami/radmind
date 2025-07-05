@@ -1,4 +1,5 @@
 from src.db.dao import report_dao
+from src.utils.field_mapping import convert_dict_keys_to_snake_case
 
 
 class ReportService:
@@ -70,11 +71,15 @@ class ReportService:
         if not input_data.get("promptText") or not input_data.get("promptText").strip():
             raise ValueError("Prompt text is required")
 
-        return await report_dao.create_report(input_data)
+        # Convert camelCase to snake_case for database
+        db_data = convert_dict_keys_to_snake_case(input_data)
+        return await report_dao.create_report(db_data)
 
     @staticmethod
     async def update_report(report_id: int, input_data: dict):
-        return await report_dao.update_report(report_id, input_data)
+        # Convert camelCase to snake_case for database
+        db_data = convert_dict_keys_to_snake_case(input_data)
+        return await report_dao.update_report(report_id, db_data)
 
     @staticmethod
     async def delete_report(report_id: int):

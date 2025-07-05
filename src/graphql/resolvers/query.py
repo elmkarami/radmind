@@ -13,7 +13,7 @@ async def resolve_users(*_, first=None, after=None, last=None, before=None):
 
 @query.field("user")
 async def resolve_user(*_, id):
-    return await UserService.get_user_by_id(id)
+    return await UserService.get_user_by_id(int(id))
 
 
 @query.field("organizations")
@@ -23,7 +23,7 @@ async def resolve_organizations(*_, first=None, after=None, last=None, before=No
 
 @query.field("organization")
 async def resolve_organization(*_, id):
-    return await UserService.get_organization_by_id(id)
+    return await UserService.get_organization_by_id(int(id))
 
 
 @query.field("studies")
@@ -33,7 +33,7 @@ async def resolve_studies(*_, first=None, after=None, last=None, before=None):
 
 @query.field("study")
 async def resolve_study(*_, id):
-    return await ReportService.get_study_by_id(id)
+    return await ReportService.get_study_by_id(int(id))
 
 
 @query.field("reports")
@@ -43,4 +43,4 @@ async def resolve_reports(*_, first=None, after=None, last=None, before=None):
 
 @query.field("report")
 async def resolve_report(*_, id):
-    return await ReportService.get_report_by_id(id)
+    return await ReportService.get_report_by_id(int(id))

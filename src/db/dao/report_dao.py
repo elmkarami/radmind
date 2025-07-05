@@ -3,13 +3,8 @@ from typing import Any, List, Optional
 from sqlalchemy import select
 
 from src.db import db
-from src.db.models.report import (
-    Report,
-    ReportEvent,
-    ReportHistory,
-    Study,
-    StudyTemplate,
-)
+from src.db.models.report import (Report, ReportEvent, ReportHistory, Study,
+                                  StudyTemplate)
 from src.utils.pagination import Connection, paginate
 
 
@@ -131,12 +126,16 @@ async def create_report(report_data: dict) -> Report:
 
 
 async def update_report(report_id: int, report_data: dict) -> Optional[Report]:
+    from datetime import datetime
+
     stmt = select(Report).where(Report.id == report_id)
     result = await db.session.execute(stmt)
     report = result.scalar_one_or_none()
     if report:
         for key, value in report_data.items():
             setattr(report, key, value)
+        # Set updated_at timestamp
+        report.updated_at = datetime.now()
         await db.session.commit()
         await db.session.refresh(report)
     return report

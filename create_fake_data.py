@@ -5,14 +5,8 @@ import factory
 from factory import Faker
 
 from src.db import db
-from src.db.models.report import (
-    Report,
-    ReportEvent,
-    ReportHistory,
-    ReportStatus,
-    Study,
-    StudyTemplate,
-)
+from src.db.models.report import (Report, ReportEvent, ReportHistory,
+                                  ReportStatus, Study, StudyTemplate)
 from src.db.models.user import Organization, User
 
 

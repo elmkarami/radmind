@@ -106,16 +106,8 @@ async def paginate(
 
     # Get total count (separate query for performance)
     count_query = select(func.count(getattr(model, order_by_field)))
-    if after:
-        after_id = decode_cursor(after)
-        count_query = select(func.count(getattr(model, order_by_field))).where(
-            getattr(model, order_by_field) > after_id
-        )
-    if before:
-        before_id = decode_cursor(before)
-        count_query = select(func.count(getattr(model, order_by_field))).where(
-            getattr(model, order_by_field) < before_id
-        )
+    # Note: totalCount should represent the total number of items in the entire dataset
+    # regardless of cursor filtering - this is the GraphQL Relay standard
 
     total_result = await db.session.execute(count_query)
     total_count = total_result.scalar()

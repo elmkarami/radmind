@@ -5,7 +5,6 @@ registry = {}
 
 
 class BaseFactory(SQLAlchemyModelFactory):
-
     class Meta:
         abstract = True
 
@@ -17,5 +16,4 @@ class BaseFactory(SQLAlchemyModelFactory):
     def patch_session(cls, session: AsyncSession):
         for factory in registry.values():
             factory._meta.sqlalchemy_session = session
-            factory._meta.sqlalchemy_session_persistence = "commit"
-
+            factory._meta.sqlalchemy_session_persistence = "flush"

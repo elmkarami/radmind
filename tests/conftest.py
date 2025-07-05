@@ -1,5 +1,5 @@
-from urllib.parse import urlparse
 from unittest.mock import Mock, patch
+from urllib.parse import urlparse
 
 import pytest
 import pytest_asyncio
@@ -10,12 +10,11 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.api.middleware import SessionMiddleware
 from src.api.app import app
+from src.api.middleware import SessionMiddleware
 from src.config.settings import settings
 from src.db import db
 from src.db.models.base import Base
-from src.db.session import _session_context
 from tests.factories.base import BaseFactory
 
 
@@ -105,9 +104,7 @@ def setup_test_database():
 
 @pytest.fixture(scope="session")
 def test_app():
-    middleware = [
-        m for m in app.user_middleware if m.cls is not SessionMiddleware
-    ]
+    middleware = [m for m in app.user_middleware if m.cls is not SessionMiddleware]
     app.user_middleware = middleware
     return app
 
@@ -117,8 +114,13 @@ async def db_session(setup_test_database):
     test_db_uri = setup_test_database
 
     engine = create_async_engine(test_db_uri)
+
+    # Use connection-level transaction management
+    connection = await engine.connect()
+    transaction = await connection.begin()
+
     session_factory = sessionmaker(
-        bind=engine, class_=AsyncSession, expire_on_commit=False
+        bind=connection, class_=AsyncSession, expire_on_commit=False
     )
 
     session = session_factory()
@@ -133,11 +135,12 @@ async def db_session(setup_test_database):
     try:
         yield session
     finally:
-        # Clean up: reset the context variable and close session
-        await session.rollback()
-        await session.close()
+        # Always rollback the connection-level transaction
+        await transaction.rollback()
+        await connection.close()
         await engine.dispose()
         patcher.stop()
+
 
 @pytest.fixture
 def patch_session():

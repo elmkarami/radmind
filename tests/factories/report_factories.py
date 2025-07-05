@@ -1,17 +1,13 @@
-import factory
-from factory import Faker, LazyFunction
 from datetime import datetime
 
-from src.db.models.report import (
-    Study,
-    StudyTemplate,
-    Report,
-    ReportHistory,
-    ReportEvent,
-    ReportStatus,
-)
-from .user_factories import UserFactory
+import factory
+from factory import Faker, LazyFunction
+
+from src.db.models.report import (Report, ReportEvent, ReportHistory,
+                                  ReportStatus, Study, StudyTemplate)
+
 from .base import BaseFactory
+from .user_factories import UserFactory
 
 
 class StudyFactory(BaseFactory):
@@ -27,13 +23,7 @@ class StudyTemplateFactory(BaseFactory):
 
     study = factory.SubFactory(StudyFactory)
     section_names = factory.LazyFunction(
-        lambda: [
-            "Introduction",
-            "Methodology", 
-            "Results",
-            "Discussion",
-            "Conclusion"
-        ]
+        lambda: ["Introduction", "Methodology", "Results", "Discussion", "Conclusion"]
     )
 
 
@@ -64,12 +54,15 @@ class ReportEventFactory(BaseFactory):
         model = ReportEvent
 
     report = factory.SubFactory(ReportFactory)
-    event_type = Faker("random_element", elements=[
-        "created", 
-        "updated", 
-        "status_changed", 
-        "reviewed", 
-        "signed", 
-        "archived"
-    ])
-    details = Faker("sentence", nb_words=10) 
+    event_type = Faker(
+        "random_element",
+        elements=[
+            "created",
+            "updated",
+            "status_changed",
+            "reviewed",
+            "signed",
+            "archived",
+        ],
+    )
+    details = Faker("sentence", nb_words=10)

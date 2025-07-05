@@ -1,9 +1,6 @@
 from src.db.dao import user_dao
-from src.utils.validators import (
-    validate_email,
-    validate_password,
-    validate_phone_number,
-)
+from src.utils.validators import (validate_email, validate_password,
+                                  validate_phone_number)
 
 
 class UserService:
