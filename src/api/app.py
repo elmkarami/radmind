@@ -3,6 +3,7 @@ from ariadne.asgi import GraphQL
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
 
 from src.api.middleware import SessionMiddleware
 from src.graphql.resolvers import resolvers
@@ -22,6 +23,11 @@ middleware = [
 ]
 
 app = Starlette(middleware=middleware)
+
+@app.route("/", methods=["GET"])
+async def health_check(request):
+    return JSONResponse({"status": "ok"})
+
 graphql_app = GraphQL(schema, debug=False)
 
 app.mount("/graphql", graphql_app)
