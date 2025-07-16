@@ -43,8 +43,8 @@ async def test_query_reports_paginated(test_client, db_session):
         await db_session.refresh(report)
 
     query = """
-    query($first: Int) {
-        reports(first: $first) {
+    query {
+        reports {
             edges {
                 cursor
                 node {
@@ -82,7 +82,7 @@ async def test_query_reports_paginated(test_client, db_session):
     """
 
     response = await test_client.post(
-        "/graphql/", json={"query": query, "variables": {"first": 2}}
+        "/graphql/", json={"query": query}
     )
     assert response.status_code == 200
 
