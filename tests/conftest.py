@@ -11,10 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from src.api.app import app
+from src.api.auth_context import set_current_user
 from src.api.middleware import SessionMiddleware
 from src.config.settings import settings
 from src.db import db
 from src.db.models.base import Base
+from src.services.auth_service import AuthService
+from tests.factories import UserFactory
 from tests.factories.base import BaseFactory
 
 
@@ -149,8 +152,39 @@ def patch_session():
 
 
 @pytest_asyncio.fixture
-async def test_client(test_app):
-    """Create an async HTTP client for testing"""
+async def authenticated_user(db_session):
+    """Create a test user and set authentication context"""
+    user = UserFactory(
+        first_name="AuthUser",
+        last_name="TestUser",
+        email="authuser@example.com",
+        password_must_change=False,
+    )
+    await db_session.commit()
+    await db_session.refresh(user)
+
+    # Set the user in authentication context for the test
+    set_current_user(user)
+    return user
+
+
+@pytest_asyncio.fixture
+async def test_client(test_app, authenticated_user):
+    """Create an async HTTP client for testing with authentication"""
+    # Generate JWT token directly without password verification
+    token = AuthService.create_access_token(authenticated_user.id)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=test_app),
+        base_url="http://test",
+        headers={"Authorization": f"Bearer {token}"},
+    ) as client:
+        yield client
+
+
+@pytest_asyncio.fixture
+async def unauthenticated_client(test_app):
+    """Create an async HTTP client without authentication headers"""
     async with AsyncClient(
         transport=ASGITransport(app=test_app), base_url="http://test"
     ) as client:

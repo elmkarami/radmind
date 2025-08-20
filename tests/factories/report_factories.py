@@ -1,13 +1,19 @@
+import random
 from datetime import datetime
 
 import factory
 from factory import Faker, LazyFunction
 
-from src.db.models.report import (Report, ReportEvent, ReportHistory,
-                                  ReportStatus, Study, StudyTemplate)
-
-from .base import BaseFactory
-from .user_factories import UserFactory
+from src.db.models.report import (
+    Report,
+    ReportEvent,
+    ReportHistory,
+    ReportStatus,
+    Study,
+    StudyTemplate,
+)
+from tests.factories.base import BaseFactory
+from tests.factories.user_factories import UserFactory
 
 
 class StudyFactory(BaseFactory):
@@ -15,6 +21,19 @@ class StudyFactory(BaseFactory):
         model = Study
 
     name = Faker("catch_phrase")
+
+    @factory.lazy_attribute
+    def categories(self):
+        categories_options = [
+            "CT",
+            "MRI",
+            "X-ray",
+            "Ultrasound",
+            "Emergency",
+            "Cardiac",
+            "Neurological",
+        ]
+        return random.sample(categories_options, random.randint(1, 3))
 
 
 class StudyTemplateFactory(BaseFactory):

@@ -1,10 +1,17 @@
+from datetime import datetime
 from typing import Any, List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
+from sqlalchemy.orm import joinedload
 
 from src.db import db
-from src.db.models.report import (Report, ReportEvent, ReportHistory, Study,
-                                  StudyTemplate)
+from src.db.models.report import (
+    Report,
+    ReportEvent,
+    ReportHistory,
+    Study,
+    StudyTemplate,
+)
 from src.utils.pagination import Connection, paginate
 
 
@@ -19,13 +26,28 @@ async def get_studies_paginated(
     after: Optional[str] = None,
     last: Optional[int] = None,
     before: Optional[str] = None,
+    filter: Optional[dict] = None,
 ) -> Connection[Study]:
+    # Build filter conditions
+    filters = []
+    if filter:
+        if filter.get("categories"):
+            # Filter studies that have any of the specified categories
+            categories_filter = filter["categories"]
+            # Check if study.categories array contains any of the specified categories
+            category_conditions = []
+            for category in categories_filter:
+                category_conditions.append(Study.categories.contains([category]))
+            if category_conditions:
+                filters.append(or_(*category_conditions))
+
     return await paginate(
         model=Study,
         first=first,
         after=after,
         last=last,
         before=before,
+        filters=filters if filters else None,
     )
 
 
@@ -89,13 +111,41 @@ async def get_reports_paginated(
     after: Optional[str] = None,
     last: Optional[int] = None,
     before: Optional[str] = None,
+    filter: Optional[dict] = None,
 ) -> Connection[Report]:
+    # Build filter conditions
+    filters = []
+    if filter:
+        if filter.get("studyId"):
+            filters.append(Report.study_id == int(filter["studyId"]))
+
+        if filter.get("templateId"):
+            filters.append(Report.template_id == int(filter["templateId"]))
+
+        if filter.get("studyCategories"):
+            # Filter reports whose study has any of the specified categories
+            categories_filter = filter["studyCategories"]
+
+            # We need to join with Study table to filter by study categories
+
+            # For this type of filtering, we'll use a subquery approach
+            study_subquery = select(Study.id).where(
+                or_(
+                    *[
+                        Study.categories.contains([category])
+                        for category in categories_filter
+                    ]
+                )
+            )
+            filters.append(Report.study_id.in_(study_subquery))
+
     return await paginate(
         model=Report,
         first=first,
         after=after,
         last=last,
         before=before,
+        filters=filters if filters else None,
     )
 
 
@@ -126,8 +176,6 @@ async def create_report(report_data: dict) -> Report:
 
 
 async def update_report(report_id: int, report_data: dict) -> Optional[Report]:
-    from datetime import datetime
-
     stmt = select(Report).where(Report.id == report_id)
     result = await db.session.execute(stmt)
     report = result.scalar_one_or_none()

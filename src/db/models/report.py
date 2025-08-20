@@ -17,6 +17,7 @@ class Study(Base):
     id: Optional[int] = Column(Integer, primary_key=True, autoincrement=True)
     name: str = Column(String, nullable=False)
     created_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
+    categories: List[str] = Column(ARRAY(String), default=list)
 
     templates: Mapped[List["StudyTemplate"]] = relationship(
         "StudyTemplate", back_populates="study"

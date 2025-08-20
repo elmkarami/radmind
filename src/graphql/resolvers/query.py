@@ -27,8 +27,10 @@ async def resolve_organization(*_, id):
 
 
 @query.field("studies")
-async def resolve_studies(*_, first=None, after=None, last=None, before=None):
-    return await ReportService.get_studies_paginated(first, after, last, before)
+async def resolve_studies(
+    *_, first=None, after=None, last=None, before=None, filter=None
+):
+    return await ReportService.get_studies_paginated(first, after, last, before, filter)
 
 
 @query.field("study")
@@ -37,8 +39,10 @@ async def resolve_study(*_, id):
 
 
 @query.field("reports")
-async def resolve_reports(*_, first=None, after=None, last=None, before=None):
-    return await ReportService.get_reports_paginated(first, after, last, before)
+async def resolve_reports(
+    *_, first=None, after=None, last=None, before=None, filter=None
+):
+    return await ReportService.get_reports_paginated(first, after, last, before, filter)
 
 
 @query.field("report")

@@ -1,41 +1,61 @@
 from ariadne import gql
 
 type_defs = gql("""
+    directive @requiresAuth on FIELD_DEFINITION
+    directive @requiresRole(role: UserRole!) on FIELD_DEFINITION
+    
     type Query {
-        users(first: Int, after: String, last: Int, before: String): UserConnection!
-        user(id: ID!): User
-        organizations(first: Int, after: String, last: Int, before: String): OrganizationConnection!
-        organization(id: ID!): Organization
-        studies(first: Int, after: String, last: Int, before: String): StudyConnection!
-        study(id: ID!): Study
-        reports(first: Int, after: String, last: Int, before: String): ReportConnection!
-        report(id: ID!): Report
+        users(first: Int, after: String, last: Int, before: String): UserConnection! @requiresAuth
+        user(id: ID!): User @requiresAuth
+        organizations(first: Int, after: String, last: Int, before: String): OrganizationConnection! @requiresAuth
+        organization(id: ID!): Organization @requiresAuth
+        studies(first: Int, after: String, last: Int, before: String, filter: StudyFilterInput): StudyConnection! @requiresAuth
+        study(id: ID!): Study @requiresAuth
+        reports(first: Int, after: String, last: Int, before: String, filter: ReportFilterInput): ReportConnection! @requiresAuth
+        report(id: ID!): Report @requiresAuth
     }
 
     type Mutation {
-        createUser(input: CreateUserInput!): User!
-        updateUser(id: ID!, input: UpdateUserInput!): User!
-        deleteUser(id: ID!): Boolean!
-        createOrganization(input: CreateOrganizationInput!): Organization!
-        updateOrganization(id: ID!, input: UpdateOrganizationInput!): Organization!
-        deleteOrganization(id: ID!): Boolean!
-        createStudy(input: CreateStudyInput!): Study!
-        updateStudy(id: ID!, input: UpdateStudyInput!): Study!
-        deleteStudy(id: ID!): Boolean!
-        createReport(input: CreateReportInput!): Report!
-        updateReport(id: ID!, input: UpdateReportInput!): Report!
-        deleteReport(id: ID!): Boolean!
+        login(email: String!, password: String!): AuthPayload!
+        changePassword(currentPassword: String!, newPassword: String!): Boolean! @requiresAuth
+        createUser(input: CreateUserInput!): User! @requiresAuth
+        updateUser(id: ID!, input: UpdateUserInput!): User! @requiresAuth
+        deleteUser(id: ID!): Boolean! @requiresAuth
+        createOrganization(input: CreateOrganizationInput!): Organization! @requiresAuth
+        updateOrganization(id: ID!, input: UpdateOrganizationInput!): Organization! @requiresAuth
+        deleteOrganization(id: ID!): Boolean! @requiresRole(role: Owner)
+        inviteRadiologist(organizationId: ID!, input: InviteRadiologistInput!): User! @requiresRole(role: Owner)
+        removeRadiologist(userId: ID!, organizationId: ID!): Boolean! @requiresRole(role: Owner)
+        getRadiologistPassword(userId: ID!): String @requiresRole(role: Owner)
+        forcePasswordReset(userId: ID!): String! @requiresRole(role: Owner)
+        createStudy(input: CreateStudyInput!): Study! @requiresAuth
+        updateStudy(id: ID!, input: UpdateStudyInput!): Study! @requiresAuth
+        deleteStudy(id: ID!): Boolean! @requiresAuth
+        createReport(input: CreateReportInput!): Report! @requiresAuth
+        updateReport(id: ID!, input: UpdateReportInput!): Report! @requiresAuth
+        deleteReport(id: ID!): Boolean! @requiresAuth
+    }
+
+    enum UserRole {
+        Owner
+        Radiologist
+    }
+
+    type AuthPayload {
+        token: String!
+        user: User!
+        mustChangePassword: Boolean!
     }
 
     type User {
         id: ID!
-        firstName: String
-        lastName: String
-        email: String
+        firstName: String!
+        lastName: String!
+        email: String!
         phoneNumber: String
-        role: String
         createdAt: String!
-        organization: Organization
+        mustChangePassword: Boolean!
+        organizationMemberships: [OrganizationMember!]!
         reports: [Report!]!
     }
 
@@ -43,14 +63,24 @@ type_defs = gql("""
         id: ID!
         name: String!
         logo: String
-        address: String
-        phoneNumber: String
-        users: [User!]!
+        address: String!
+        phoneNumber: String!
+        createdBy: User!
+        members: [OrganizationMember!]!
+    }
+
+    type OrganizationMember {
+        id: ID!
+        user: User!
+        organization: Organization!
+        role: UserRole!
+        createdAt: String!
     }
 
     type Study {
         id: ID!
         name: String!
+        categories: [String!]!
         createdAt: String!
         templates: [StudyTemplate!]!
         reports: [Report!]!
@@ -106,8 +136,6 @@ type_defs = gql("""
         email: String!
         phoneNumber: String
         password: String!
-        role: String
-        organizationId: ID
     }
 
     input UpdateUserInput {
@@ -115,8 +143,13 @@ type_defs = gql("""
         lastName: String
         email: String
         phoneNumber: String
-        role: String
-        organizationId: ID
+    }
+
+    input InviteRadiologistInput {
+        firstName: String!
+        lastName: String!
+        email: String!
+        phoneNumber: String
     }
 
     input CreateOrganizationInput {
@@ -135,16 +168,17 @@ type_defs = gql("""
 
     input CreateStudyInput {
         name: String!
+        categories: [String!]
     }
 
     input UpdateStudyInput {
         name: String
+        categories: [String!]
     }
 
     input CreateReportInput {
         studyId: ID!
         templateId: ID!
-        userId: ID!
         promptText: String!
     }
 
@@ -179,6 +213,17 @@ type_defs = gql("""
 
     type OrganizationConnection {
         edges: [OrganizationEdge!]!
+        pageInfo: PageInfo!
+        totalCount: Int!
+    }
+
+    type OrganizationMemberEdge {
+        cursor: String!
+        node: OrganizationMember!
+    }
+
+    type OrganizationMemberConnection {
+        edges: [OrganizationMemberEdge!]!
         pageInfo: PageInfo!
         totalCount: Int!
     }
@@ -236,5 +281,15 @@ type_defs = gql("""
         edges: [ReportEventEdge!]!
         pageInfo: PageInfo!
         totalCount: Int!
+    }
+
+    input StudyFilterInput {
+        categories: [String!]
+    }
+
+    input ReportFilterInput {
+        studyId: ID
+        templateId: ID
+        studyCategories: [String!]
     }
 """)

@@ -53,6 +53,7 @@ async def paginate(
     last: Optional[int] = None,
     before: Optional[str] = None,
     order_by_field: str = "id",
+    filters: Optional[List] = None,
 ) -> Connection[T]:
     """
     Generic cursor pagination function
@@ -69,6 +70,11 @@ async def paginate(
 
     # Build base query
     query = select(model)
+
+    # Apply custom filters
+    if filters:
+        for filter_condition in filters:
+            query = query.where(filter_condition)
 
     # Handle cursor filtering
     if after:
@@ -106,8 +112,14 @@ async def paginate(
 
     # Get total count (separate query for performance)
     count_query = select(func.count(getattr(model, order_by_field)))
-    # Note: totalCount should represent the total number of items in the entire dataset
-    # regardless of cursor filtering - this is the GraphQL Relay standard
+
+    # Apply the same filters to the count query (but not cursor filters)
+    if filters:
+        for filter_condition in filters:
+            count_query = count_query.where(filter_condition)
+
+    # Note: totalCount represents the total number of items matching the filters
+    # regardless of cursor filtering - this follows GraphQL best practices
 
     total_result = await db.session.execute(count_query)
     total_count = total_result.scalar()

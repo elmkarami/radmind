@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import select
 
 from src.db import db
-from src.db.models.user import Organization, User
+from src.db.models.user import Organization, OrganizationMember, User
 from src.utils.pagination import Connection, paginate
 
 
@@ -30,6 +30,12 @@ async def get_users_paginated(
 
 async def get_user_by_id(user_id: int) -> Optional[User]:
     stmt = select(User).where(User.id == user_id)
+    result = await db.session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def get_user_by_email(email: str) -> Optional[User]:
+    stmt = select(User).where(User.email == email)
     result = await db.session.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -127,7 +133,75 @@ async def delete_organization(organization_id: int) -> bool:
     result = await db.session.execute(stmt)
     organization = result.scalar_one_or_none()
     if organization:
+        # First delete all organization members to avoid foreign key constraint violations
+        members_stmt = select(OrganizationMember).where(
+            OrganizationMember.organization_id == organization_id
+        )
+        members_result = await db.session.execute(members_stmt)
+        members = members_result.scalars().all()
+
+        for member in members:
+            await db.session.delete(member)
+
+        # Then delete the organization
         await db.session.delete(organization)
         await db.session.commit()
         return True
     return False
+
+
+async def get_organization_members(organization_id: int):
+    """Get all members of an organization"""
+    stmt = select(OrganizationMember).where(
+        OrganizationMember.organization_id == organization_id
+    )
+    result = await db.session.execute(stmt)
+    return result.scalars().all()
+
+
+async def get_user_organization_memberships(user_id: int):
+    """Get all organization memberships for a user"""
+    stmt = select(OrganizationMember).where(OrganizationMember.user_id == user_id)
+    result = await db.session.execute(stmt)
+    return result.scalars().all()
+
+
+async def create_organization_member(user_id: int, organization_id: int, role: str):
+    """Create an organization membership"""
+    member = OrganizationMember(
+        user_id=user_id, organization_id=organization_id, role=role
+    )
+    db.session.add(member)
+    await db.session.commit()
+    await db.session.refresh(member)
+    return member
+
+
+async def remove_organization_member(user_id: int, organization_id: int):
+    """Remove a user from an organization"""
+    stmt = select(OrganizationMember).where(
+        OrganizationMember.user_id == user_id,
+        OrganizationMember.organization_id == organization_id,
+    )
+    result = await db.session.execute(stmt)
+    member = result.scalar_one_or_none()
+
+    if member:
+        await db.session.delete(member)
+        await db.session.commit()
+        return True
+    return False
+
+
+async def update_user_password_fields(user_id: int, **fields):
+    """Update user password-related fields"""
+    stmt = select(User).where(User.id == user_id)
+    result = await db.session.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if user:
+        for field, value in fields.items():
+            setattr(user, field, value)
+        await db.session.commit()
+        await db.session.refresh(user)
+    return user

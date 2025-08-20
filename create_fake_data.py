@@ -7,17 +7,7 @@ from factory import Faker
 from src.db import db
 from src.db.models.report import (Report, ReportEvent, ReportHistory,
                                   ReportStatus, Study, StudyTemplate)
-from src.db.models.user import Organization, User
-
-
-class OrganizationFactory(factory.Factory):
-    class Meta:
-        model = Organization
-
-    name = Faker("company")
-    logo = Faker("image_url")
-    address = Faker("address")
-    phone_number = Faker("phone_number")
+from src.db.models.user import Organization, User, OrganizationMember, UserRole
 
 
 class UserFactory(factory.Factory):
@@ -28,8 +18,18 @@ class UserFactory(factory.Factory):
     last_name = Faker("last_name")
     email = Faker("email")
     phone_number = Faker("phone_number")
-    password = "hashed_password"
-    role = Faker("random_element", elements=["admin", "doctor", "technician", "viewer"])
+    password = "password123"  # Known password for testing
+    password_must_change = False
+
+
+class OrganizationFactory(factory.Factory):
+    class Meta:
+        model = Organization
+
+    name = Faker("company")
+    logo = Faker("image_url")
+    address = Faker("address")
+    phone_number = Faker("phone_number")
 
 
 radiology_studies = [
@@ -111,12 +111,25 @@ radiology_studies = [
 ]
 
 
+radiology_categories = [
+    "CT", "MRI", "X-ray", "Ultrasound", "Mammogram", "DEXA", "PET-CT", 
+    "Nuclear Medicine", "Fluoroscopy", "Interventional", "Emergency",
+    "Pediatric", "Cardiac", "Neurological", "Orthopedic", "Abdominal"
+]
+
 class StudyFactory(factory.Factory):
     class Meta:
         model = Study
 
     name = Faker("random_element", elements=radiology_studies)
     created_at = Faker("date_time_this_year")
+    
+    @factory.lazy_attribute
+    def categories(self):
+        import random
+        # Return 1-3 random categories for each study
+        num_categories = random.randint(1, 3)
+        return random.sample(radiology_categories, num_categories)
 
 
 class StudyTemplateFactory(factory.Factory):
@@ -175,24 +188,78 @@ async def create_fake_data():
     await db.start_session()
 
     try:
+        # Create organizations with owners
         organizations = []
-        for _ in range(5):
-            org = OrganizationFactory()
+        owners = []
+        
+        for i in range(5):
+            # Create owner user first
+            owner = UserFactory(
+                first_name=f"Owner{i+1}",
+                last_name="Smith", 
+                email=f"owner{i+1}@clinic{i+1}.com"
+            )
+            owner.set_password("password123")  # Known password
+            db.session.add(owner)
+            owners.append(owner)
+            
+        await db.session.commit()
+        for owner in owners:
+            await db.session.refresh(owner)
+            
+        # Create organizations with created_by_user_id
+        for i, owner in enumerate(owners):
+            org = OrganizationFactory(
+                name=f"Radiology Clinic {i+1}",
+                created_by_user_id=owner.id
+            )
             db.session.add(org)
             organizations.append(org)
 
         await db.session.commit()
+        for org in organizations:
+            await db.session.refresh(org)
 
-        users = []
-        for _ in range(20):
-            user = UserFactory()
-            user.organization_id = random.choice(organizations).id
-            user.set_password("password123")
-            db.session.add(user)
-            users.append(user)
+        # Create organization memberships for owners
+        for owner, org in zip(owners, organizations):
+            membership = OrganizationMember(
+                user_id=owner.id,
+                organization_id=org.id,
+                role=UserRole.OWNER.value
+            )
+            db.session.add(membership)
 
         await db.session.commit()
 
+        # Create radiologist users and memberships
+        radiologists = []
+        for i in range(15):  # 3 radiologists per organization on average
+            radiologist = UserFactory(
+                first_name=f"Dr.{i+1}",
+                last_name="Radiologist",
+                email=f"radiologist{i+1}@example.com"
+            )
+            radiologist.set_password("password123")  # Known password
+            db.session.add(radiologist)
+            radiologists.append(radiologist)
+
+        await db.session.commit()
+        for radiologist in radiologists:
+            await db.session.refresh(radiologist)
+
+        # Create radiologist memberships
+        for radiologist in radiologists:
+            org = random.choice(organizations)
+            membership = OrganizationMember(
+                user_id=radiologist.id,
+                organization_id=org.id,
+                role=UserRole.RADIOLOGIST.value
+            )
+            db.session.add(membership)
+
+        await db.session.commit()
+
+        # Create studies
         studies = []
         for _ in range(10):
             study = StudyFactory()
@@ -201,6 +268,7 @@ async def create_fake_data():
 
         await db.session.commit()
 
+        # Create templates
         templates = []
         for _ in range(15):
             template = StudyTemplateFactory()
@@ -210,22 +278,26 @@ async def create_fake_data():
 
         await db.session.commit()
 
+        # Create reports (only radiologists can create reports)
+        all_users = owners + radiologists
         reports = []
         for _ in range(50):
             report = ReportFactory()
             report.study_id = random.choice(studies).id
             report.template_id = random.choice(templates).id
-            report.user_id = random.choice(users).id
+            report.user_id = random.choice(all_users).id
             db.session.add(report)
             reports.append(report)
 
         await db.session.commit()
 
+        # Create report histories
         for _ in range(100):
             history = ReportHistoryFactory()
             history.report_id = random.choice(reports).id
             db.session.add(history)
 
+        # Create report events
         for _ in range(80):
             event = ReportEventFactory()
             event.report_id = random.choice(reports).id
@@ -234,11 +306,19 @@ async def create_fake_data():
         await db.session.commit()
 
         print("Fake data created successfully!")
-        print(
-            f"Created: {len(organizations)} organizations, {len(users)} users, {len(studies)} studies"
-        )
-        print(f"Created: {len(templates)} templates, {len(reports)} reports")
+        print(f"Created: {len(organizations)} organizations")
+        print(f"Created: {len(owners)} owners, {len(radiologists)} radiologists")
+        print(f"Created: {len(studies)} studies, {len(templates)} templates")
+        print(f"Created: {len(reports)} reports")
         print("Created: 100 report histories, 80 report events")
+        print("\n--- LOGIN CREDENTIALS ---")
+        print("All users have password: 'password123'")
+        print("\nOwner accounts:")
+        for i in range(5):
+            print(f"  - owner{i+1}@clinic{i+1}.com (Owner of Radiology Clinic {i+1})")
+        print("\nRadiologist accounts:")
+        for i in range(15):
+            print(f"  - radiologist{i+1}@example.com (Radiologist)")
 
     except Exception as e:
         await db.session.rollback()

@@ -1,5 +1,11 @@
-from .report import Report, ReportEvent, ReportHistory, Study, StudyTemplate
-from .user import Organization, User
+from src.db.models.report import (
+    Report,
+    ReportEvent,
+    ReportHistory,
+    Study,
+    StudyTemplate,
+)
+from src.db.models.user import Organization, User
 
 __all__ = [
     "User",

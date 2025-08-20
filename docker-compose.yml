@@ -20,8 +20,14 @@ services:
       SQLALCHEMY_DATABASE_URI: postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
     depends_on:
       - postgres
+      - redis
     volumes:
       - .:/app
+      
+  redis:
+    image: redis:7.2.1
+    ports:
+      - 6379:6379
 
 volumes:
   postgres_data:

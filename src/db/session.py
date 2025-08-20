@@ -41,3 +41,9 @@ class DatabaseSession:
 
 
 db = DatabaseSession()
+
+
+async def get_session():
+    """Get database session for dependency injection"""
+    async with async_session_factory() as session:
+        yield session

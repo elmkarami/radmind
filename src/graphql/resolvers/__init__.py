@@ -1,12 +1,20 @@
 from ariadne import ObjectType
 
+from src.graphql.resolvers.mutation import mutation
+from src.graphql.resolvers.query import query
+from src.graphql.resolvers.report import (
+    report_event_type,
+    report_history_type,
+    report_type,
+    study_template_type,
+    study_type,
+)
+from src.graphql.resolvers.user import (
+    organization_member_type,
+    organization_type,
+    user_type,
+)
 from src.graphql.types.enums import report_status_enum
-
-from .mutation import mutation
-from .query import query
-from .report import (report_event_type, report_history_type, report_type,
-                     study_template_type, study_type)
-from .user import organization_type, user_type
 
 # Pagination types
 page_info_type = ObjectType("PageInfo")
@@ -14,10 +22,14 @@ user_connection_type = ObjectType("UserConnection")
 user_edge_type = ObjectType("UserEdge")
 organization_connection_type = ObjectType("OrganizationConnection")
 organization_edge_type = ObjectType("OrganizationEdge")
+organization_member_connection_type = ObjectType("OrganizationMemberConnection")
+organization_member_edge_type = ObjectType("OrganizationMemberEdge")
 study_connection_type = ObjectType("StudyConnection")
 study_edge_type = ObjectType("StudyEdge")
 report_connection_type = ObjectType("ReportConnection")
 report_edge_type = ObjectType("ReportEdge")
+auth_payload_type = ObjectType("AuthPayload")
+user_role_enum = ObjectType("UserRole")
 
 
 # PageInfo resolvers for snake_case to camelCase mapping
@@ -146,6 +158,12 @@ def resolve_report_edge_node(edge, *_):
     return edge.node
 
 
+# AuthPayload resolvers
+@auth_payload_type.field("mustChangePassword")
+def resolve_auth_payload_must_change_password(auth_payload, *_):
+    return auth_payload["must_change_password"]
+
+
 resolvers = [
     query,
     mutation,
@@ -156,12 +174,16 @@ resolvers = [
     report_history_type,
     report_event_type,
     organization_type,
+    organization_member_type,
+    auth_payload_type,
     report_status_enum,
     page_info_type,
     user_connection_type,
     user_edge_type,
     organization_connection_type,
     organization_edge_type,
+    organization_member_connection_type,
+    organization_member_edge_type,
     study_connection_type,
     study_edge_type,
     report_connection_type,

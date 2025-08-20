@@ -8,8 +8,12 @@ class ReportService:
         return await report_dao.get_all_studies()
 
     @staticmethod
-    async def get_studies_paginated(first=None, after=None, last=None, before=None):
-        return await report_dao.get_studies_paginated(first, after, last, before)
+    async def get_studies_paginated(
+        first=None, after=None, last=None, before=None, filter=None
+    ):
+        return await report_dao.get_studies_paginated(
+            first, after, last, before, filter
+        )
 
     @staticmethod
     async def get_study_by_id(study_id: int):
@@ -44,8 +48,12 @@ class ReportService:
         return await report_dao.get_all_reports()
 
     @staticmethod
-    async def get_reports_paginated(first=None, after=None, last=None, before=None):
-        return await report_dao.get_reports_paginated(first, after, last, before)
+    async def get_reports_paginated(
+        first=None, after=None, last=None, before=None, filter=None
+    ):
+        return await report_dao.get_reports_paginated(
+            first, after, last, before, filter
+        )
 
     @staticmethod
     async def get_report_by_id(report_id: int):
