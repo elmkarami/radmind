@@ -2,12 +2,13 @@ from contextvars import ContextVar
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+from src.config import settings
 
 DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
 # Create the async engine
 engine = create_async_engine(
-    DATABASE_URL,
+    settings.SQLALCHEMY_DATABASE_URI,
     echo=True,
     future=True,
 )
