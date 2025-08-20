@@ -51,7 +51,7 @@ jobs:
         ADMIN_EMAIL: admin@test.com
         ADMIN_PASSWORD: testpassword
       run: |
-        uv run alembic upgrade head
+        uv run alembic -c src/db/alembic.ini upgrade head
 
     - name: Run tests with coverage
       env:
