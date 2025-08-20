@@ -45,7 +45,7 @@ jobs:
 
     - name: Set up test database environment
       env:
-        SQLALCHEMY_DATABASE_URI: postgresql://postgres:postgres@localhost:5432/radmind_test
+        SQLALCHEMY_DATABASE_URI: postgresql+asyncpg://postgres:postgres@localhost:5432/radmind_test
         TESTING: true
         SECRET_KEY: test-secret-key-for-ci
         ADMIN_EMAIL: admin@test.com
@@ -55,7 +55,7 @@ jobs:
 
     - name: Run tests with coverage
       env:
-        SQLALCHEMY_DATABASE_URI: postgresql://postgres:postgres@localhost:5432/radmind_test
+        SQLALCHEMY_DATABASE_URI: postgresql+asyncpg://postgres:postgres@localhost:5432/radmind_test
         TESTING: true
         SECRET_KEY: test-secret-key-for-ci
         ADMIN_EMAIL: admin@test.com
